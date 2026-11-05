@@ -10,6 +10,6 @@ What was done
 
 4. Code cleanup
 
-![Main]([(https://github.com/Kilamila1337/Freenet-Mobile/blob/90222d7d72b86c364e2d1024ad37b911748168d6/assets/screens/Screenshot_20261105-045201_Freenet%20mobile.jpg)]
+![Main][(https://github.com/Kilamila1337/Freenet-Mobile/blob/90222d7d72b86c364e2d1024ad37b911748168d6/assets/screens/Screenshot_20261105-045201_Freenet%20mobile.jpg)]
 ![Settings][(https://github.com/Kilamila1337/Freenet-Mobile/blob/90222d7d72b86c364e2d1024ad37b911748168d6/assets/screens/Screenshot_20261105-045201_Freenet%20mobile.jpg)]
 
