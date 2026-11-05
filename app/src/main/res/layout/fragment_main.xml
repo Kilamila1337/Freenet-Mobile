@@ -4,102 +4,102 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.main.activity.MainFragment" android:background="#1b3e7d" >
+    android:background="?attr/colorSurface"
+    tools:context=".ui.main.activity.MainFragment">
 
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="222dp"
-        android:layout_height="48dp"
-        android:fontFamily="sans-serif-condensed-medium"
-        android:gravity="center"
-        android:text="@string/freenet"
-        android:textAllCaps="true"
-        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-        android:textColor="#FFFFFF"
-        android:textSize="32sp"
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/status_card"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_margin="24dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="2dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.499"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.55" />
-
-    <ImageView
-        android:id="@+id/imageView"
-        android:layout_width="272dp"
-        android:layout_height="194dp"
-        android:src="@drawable/ic_freenet_logo"
-        app:layout_constraintBottom_toTopOf="@+id/textView"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
+        app:layout_constraintVertical_bias="0.6">
 
-    <TextView
-        android:id="@+id/node_status"
-        android:layout_width="238dp"
-        android:layout_height="21dp"
-        android:gravity="center"
-        android:text=""
-        android:textColor="#FFFFFF"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.499"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView"
-        app:layout_constraintVertical_bias="0.429" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp">
 
-    <ToggleButton
-        android:id="@+id/control_button"
-        android:layout_width="65dp"
-        android:layout_height="65dp"
-        android:background="@drawable/ic_baseline_power_settings_new_24"
-        android:backgroundTintMode="multiply"
-        android:checked="false"
-        android:clickable="false"
-        android:cursorVisible="false"
-        android:textOff=''
-        android:textOn=''
-        app:layout_constraintBottom_toTopOf="@+id/node_status"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView" />
+            <ImageView
+                android:id="@+id/imageView"
+                android:layout_width="200dp"
+                android:layout_height="140dp"
+                android:src="@drawable/ic_freenet_logo" />
 
-    <TextView
-        android:id="@+id/node_status_detail"
-        android:layout_width="335dp"
-        android:layout_height="63dp"
-        android:ems="10"
-        android:gravity="center|top"
-        android:textColor="#FFFFFF"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/node_status"
-        app:layout_constraintVertical_bias="0.242" />
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/textView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:fontFamily="sans-serif-condensed-medium"
+                android:gravity="center"
+                android:text="@string/freenet"
+                android:textAllCaps="true"
+                android:textSize="28sp"
+                android:textAppearance="?attr/textAppearanceHeadlineSmall" />
 
-    <Button
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/control_button"
+                style="@style/Widget.Material3.Button.IconButton.Filled"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_marginTop="16dp"
+                android:checkable="true"
+                android:clickable="false"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                app:icon="@drawable/ic_baseline_power_settings_new_24"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="36dp" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/node_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center"
+                android:text=""
+                android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/node_status_detail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:minHeight="48dp"
+                android:textAppearance="?attr/textAppearanceBodySmall" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/settings_button"
-        android:layout_width="42dp"
-        android:layout_height="42dp"
-        android:background="@drawable/ic_baseline_settings_24"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:contentDescription="@string/action_settings"
+        app:srcCompat="@drawable/ic_baseline_settings_24"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.952"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.021" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <Button
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/about_button"
-        android:layout_width="42dp"
-        android:layout_height="42dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/ic_baseline_info_24"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:contentDescription="@string/title_activity_about"
+        app:srcCompat="@drawable/ic_baseline_info_24"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

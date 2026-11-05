@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.ServiceInfo;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -11,6 +12,8 @@ import android.net.NetworkRequest;
 import android.os.IBinder;
 import android.util.Log;
 
+import androidx.core.app.ServiceCompat;
+import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
 
 import org.freenetproject.mobile.proxy.Simple;
@@ -20,9 +23,11 @@ import org.freenetproject.mobile.ui.notification.Notification;
 
 public class Service extends android.app.Service {
     PowerConnectionReceiver powerConnectionReceiver = new PowerConnectionReceiver();
-    ConnectivityManager connectivityManager;
-    ConnectivityManager.NetworkCallback networkCallback;
+    BatteryLevelReceiver batteryLevelReceiver = new BatteryLevelReceiver();
+    ConnectivityManager connectivityManager = null;
+    ConnectivityManager.NetworkCallback networkCallback = null;
     Thread proxyThread = null;
+    boolean receiversRegistered = false;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -33,18 +38,25 @@ public class Service extends android.app.Service {
 
         // Register power connection receiver
         if (preserveBattery) {
+            // On Android 14+ (targetSdk 34+) receivers must be registered as
+            // exported or not; these system broadcasts are not exported.
             IntentFilter powerConnectedFilter = new IntentFilter();
             powerConnectedFilter.addAction(Intent.ACTION_POWER_CONNECTED);
             powerConnectedFilter.addAction(Intent.ACTION_POWER_DISCONNECTED);
-            registerReceiver(powerConnectionReceiver, powerConnectedFilter);
+            ContextCompat.registerReceiver(
+                    this, powerConnectionReceiver, powerConnectedFilter,
+                    ContextCompat.RECEIVER_NOT_EXPORTED);
 
-            registerReceiver(new BatteryLevelReceiver(), new IntentFilter(
-                    Intent.ACTION_BATTERY_LOW));
+            ContextCompat.registerReceiver(
+                    this, batteryLevelReceiver,
+                    new IntentFilter(Intent.ACTION_BATTERY_LOW),
+                    ContextCompat.RECEIVER_NOT_EXPORTED);
+            receiversRegistered = true;
         }
 
         Boolean preserveData = sharedPreferences.getBoolean("preserve_data",true);
         // Register network callback
-        if (preserveData) {
+        if (preserveData && connectivityManager == null) {
             Context context = getApplicationContext();
             NetworkRequest networkRequest = new NetworkRequest.Builder()
                     .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
@@ -76,7 +88,12 @@ public class Service extends android.app.Service {
             proxyThread.start();
         }
 
-        startForeground(1, Notification.show(this));
+        ServiceCompat.startForeground(
+                this,
+                1,
+                Notification.show(this),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+        );
 
         return android.app.Service.START_STICKY;
     }
@@ -88,10 +105,26 @@ public class Service extends android.app.Service {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
 
         Boolean preserveBattery = sharedPreferences.getBoolean("preserve_battery", true);
-        if (preserveBattery) unregisterReceiver(powerConnectionReceiver);
+        if (preserveBattery && receiversRegistered) {
+            try {
+                unregisterReceiver(powerConnectionReceiver);
+                unregisterReceiver(batteryLevelReceiver);
+            } catch (IllegalArgumentException e) {
+                Log.w("Freenet", "Receiver already unregistered: " + e);
+            }
+            receiversRegistered = false;
+        }
 
         Boolean preserveData = sharedPreferences.getBoolean("preserve_data",true);
-        if (preserveData) connectivityManager.unregisterNetworkCallback(networkCallback);
+        if (preserveData && connectivityManager != null && networkCallback != null) {
+            try {
+                connectivityManager.unregisterNetworkCallback(networkCallback);
+            } catch (IllegalArgumentException e) {
+                Log.w("Freenet", "Network callback already unregistered: " + e);
+            }
+            connectivityManager = null;
+            networkCallback = null;
+        }
 
         Boolean webAccess = sharedPreferences.getBoolean("web_access",false);
         if (webAccess) {
@@ -99,7 +132,7 @@ public class Service extends android.app.Service {
         }
 
         Notification.remove(getApplicationContext());
-        stopForeground(true);
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE);
         stopSelf();
         super.onDestroy();
     }

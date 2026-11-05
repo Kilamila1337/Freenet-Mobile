@@ -14,7 +14,6 @@ import com.jakewharton.processphoenix.ProcessPhoenix;
 import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.ui.main.activity.MainActivity;
 
-import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,16 +48,27 @@ public class Manager {
         put(CONTEXT_BATTERY, true);
     }};
 
-    private MutableLiveData<Status> status = new MutableLiveData<Status>();
+    private MutableLiveData<Status> status = new MutableLiveData<>();
+    /**
+     * Current status value. LiveData#getValue may return null for a while because
+     * postValue delivers the update asynchronously (e.g. on Android's ConnectivityThread),
+     * which used to crash callers such as isPaused() with a NullPointerException.
+     * This mirrors the latest value so background threads always get a real status.
+     */
+    private volatile Status currentStatus = Status.STOPPED;
+
     private Manager() {
-        status.postValue(
-            runner.isStarted() ? Status.STARTED : Status.STOPPED
-        );
+        currentStatus = runner.isStarted() ? Status.STARTED : Status.STOPPED;
+        status.postValue(currentStatus);
     }
 
     public static Manager getInstance() {
         if (instance == null) {
-            instance = new Manager();
+            synchronized (Manager.class) {
+                if (instance == null) {
+                    instance = new Manager();
+                }
+            }
         }
 
         return instance;
@@ -66,6 +76,16 @@ public class Manager {
 
     public LiveData<Status> getStatus() {
         return status;
+    }
+
+    /**
+     * Current status, never null. Also emits the update to the LiveData observers.
+     *
+     * @param newStatus New status value.
+     */
+    private void updateStatus(Status newStatus) {
+        currentStatus = newStatus;
+        status.postValue(newStatus);
     }
 
     /**
@@ -81,7 +101,7 @@ public class Manager {
      */
     public int startService(Context context) {
         if (!Installer.getInstance().isInstalled()) {
-            status.postValue(Status.INSTALLING);
+            updateStatus(Status.INSTALLING);
             try {
                 Resources res = context.getResources();
                 Installer.getInstance().install(
@@ -91,8 +111,10 @@ public class Manager {
                         res.openRawResource(R.raw.bookmarks),
                         res.getConfiguration().locale.getDisplayLanguage()
                 );
-            } catch (FileNotFoundException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
+                updateStatus(Status.ERROR);
+                return -1;
             }
         }
 
@@ -106,27 +128,27 @@ public class Manager {
             }
         } else {
             Log.e("Freenet", "Error starting freenet (" + ret + ")");
-            status.postValue(Status.ERROR);
+            updateStatus(Status.ERROR);
         }
 
         return 0;
     }
 
     private int startNode() {
-        status.postValue(Status.STARTING_UP);
+        updateStatus(Status.STARTING_UP);
         int ret = -1;
         try {
             ret = runner.start(new String[]{Installer.getInstance().getFreenetIniPath()});
             if (ret == 0) {
-                status.postValue(Status.STARTED);
+                updateStatus(Status.STARTED);
             } else if (ret == -1) {
                 // Already running
-                status.postValue(Status.STARTED);
+                updateStatus(Status.STARTED);
             } else {
-                status.postValue(Status.ERROR);
+                updateStatus(Status.ERROR);
             }
         } catch (Exception e) {
-            status.postValue(Status.ERROR);
+            updateStatus(Status.ERROR);
         }
         return ret;
     }
@@ -143,14 +165,12 @@ public class Manager {
 
         try {
             if (runner.stop() != 0) {
-                status.postValue(Status.ERROR);
+                updateStatus(Status.ERROR);
+            } else {
+                updateStatus(Status.STOPPED);
             }
-
-            status.postValue(Status.STOPPED);
-
-
         } catch (Exception e) {
-            status.postValue(Status.ERROR);
+            updateStatus(Status.ERROR);
         }
 
         return 0;
@@ -189,16 +209,15 @@ public class Manager {
         }
         contextRunFlag.put(serviceContext, false);
 
-        status.postValue(Status.PAUSING);
+        updateStatus(Status.PAUSING);
         try {
             if (runner.pause() == 0) {
-                status.postValue(Status.PAUSED);
+                updateStatus(Status.PAUSED);
             } else {
-                status.postValue(Status.ERROR);
-
+                updateStatus(Status.ERROR);
             }
         } catch (Exception e) {
-            status.postValue(Status.ERROR);
+            updateStatus(Status.ERROR);
         }
 
         return 0;
@@ -221,15 +240,15 @@ public class Manager {
                return -3; // a given context has flagged not to run
         }
 
-        status.postValue(Status.STARTING_UP);
+        updateStatus(Status.STARTING_UP);
         try {
             if (runner.resume() == 0) {
-                status.postValue(Status.STARTED);
+                updateStatus(Status.STARTED);
             } else {
-                status.postValue(Status.ERROR);
+                updateStatus(Status.ERROR);
             }
         } catch (Exception e) {
-            status.postValue(Status.ERROR);
+            updateStatus(Status.ERROR);
         }
 
         return 0;
@@ -256,25 +275,28 @@ public class Manager {
         return true;
     }
 
+    private boolean is(Status expected) {
+        return currentStatus == expected;
+    }
+
     public Boolean isStopped() {
-        return status.getValue().equals(Status.STOPPED);
+        return is(Status.STOPPED);
     }
     public Boolean isPaused() {
-        return status.getValue().equals(Status.PAUSED);
+        return is(Status.PAUSED);
     }
 
     public Boolean isRunning() {
-        return status.getValue().equals(Status.STARTED);
+        return is(Status.STARTED);
     }
 
     public Boolean hasError() {
-        return status.getValue().equals(Status.ERROR);
+        return is(Status.ERROR);
     }
 
     public Boolean isTransitioning() {
-        Status value = status.getValue();
-        return !value.equals(Status.STARTED)
-                && !value.equals(Status.STOPPED)
-                && !value.equals(Status.PAUSED);
+        return !is(Status.STARTED)
+                && !is(Status.STOPPED)
+                && !is(Status.PAUSED);
     }
 }

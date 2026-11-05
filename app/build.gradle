@@ -1,21 +1,32 @@
 apply plugin: 'com.android.application'
 
+// Release signing uses a keystore configured in a local (non-committed) file:
+//   signing.key=/path/to/keystore.jks
+//   signing.password=<keystoreAndKeyPassword>
+// If the file is absent the build falls back to the unsigned artifact, which
+// cannot be installed ("INSTALL_PARSE_FAILED_NO_CERTIFICATES").
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withReader('UTF-8') { keystoreProperties.load(it) }
+}
+
 android {
-    compileSdkVersion 32
-    buildToolsVersion "30.0.3"
+    namespace 'org.freenetproject.mobile'
+    compileSdkVersion 35
+    buildToolsVersion "36.0.0"
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
     defaultConfig {
         applicationId "org.freenetproject.mobile"
         minSdkVersion 22
-        targetSdkVersion 32
-        versionCode 308
-        versionName '0.3.7-beta'
+        targetSdkVersion 35
+        versionCode 309
+        versionName '0.3.8-beta'
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        multiDexEnabled true
         ndk {
             abiFilters 'arm64-v8a', 'x86_64', 'x86', 'armeabi-v7a'
         }
@@ -23,43 +34,95 @@ android {
         setProperty("archivesBaseName", "freenet-mobile-v$versionName")
     }
 
+    signingConfigs {
+        if (keystoreProperties.containsKey('signing.key')) {
+            original {
+                storeFile file(keystoreProperties['signing.key'])
+                storePassword keystoreProperties['signing.password']
+                keyAlias keystoreProperties['signing.alias'] ?: 'freenet'
+                keyPassword keystoreProperties['signing.password']
+                // Android 11+ accepts only v2 or newer signatures; AGP enables
+                // whatever schemes minSdk/targetSdk require by default.
+                enableV1Signing true
+                enableV2Signing true
+            }
+        }
+    }
+
+    buildFeatures {
+        // generate BuildConfig (e.g. VERSION_NAME used by MainFragment/AboutActivity).
+        buildConfig true
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (keystoreProperties.containsKey('signing.key')) {
+                signingConfig signingConfigs.original
+            }
+        }
+    }
+
+    packaging {
+        jniLibs {
+            // Desktop-only native libraries (freebsd-x86, linux-x86, linux-x86_64)
+            // are invalid Android ABIs; onion-fec is stripped (see dependencies
+            // block). Keep the pattern in case another artifact reintroduces them.
+            excludes += ['freebsd-x86/**', 'linux-x86/**', 'linux-x86_64/**']
         }
     }
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven { url 'https://jitpack.io' }
+    // Note: mvn.freenetproject.org is intentionally not used; its artifacts are
+    // mirrored on JitPack (com.github.freenet-mobile) and it is unreachable in
+    // some regions.
+}
+
+// onion-fec (transitive through node-wrapper) ships desktop-only native libraries
+// which are invalid Android ABIs and break mergeDebugNativeLibs; it is replaced by
+// the stripped copy in app/libs (see the dependencies block).
+configurations.all {
+    exclude group: 'com.github.freenet-mobile', module: 'onion-fec'
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.4.2'
-    implementation 'com.google.android.material:material:1.6.1'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.navigation:navigation-fragment:2.5.0'
-    implementation 'androidx.navigation:navigation-ui:2.5.0'
-    implementation 'com.android.support:multidex:1.0.3'
+    implementation 'androidx.navigation:navigation-fragment:2.7.7'
+    implementation 'androidx.navigation:navigation-ui:2.7.7'
 
     // ViewModel
-    implementation "androidx.lifecycle:lifecycle-viewmodel:2.5.0"
+    implementation "androidx.lifecycle:lifecycle-viewmodel:2.8.7"
     // LiveData
-    implementation "androidx.lifecycle:lifecycle-livedata:2.5.0"
-    implementation "androidx.lifecycle:lifecycle-viewmodel-savedstate:2.5.0"
+    implementation "androidx.lifecycle:lifecycle-livedata:2.8.7"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.7"
 
-    implementation 'com.jakewharton:process-phoenix:2.0.0'
-    implementation 'com.google.guava:guava:30.0-android'
+    implementation 'com.jakewharton:process-phoenix:2.1.2'
+    implementation 'com.google.guava:guava:33.4.8-android'
 
-    // Freenet dependencies
-    implementation ('com.github.freenet-mobile:node-wrapper:0.12') {
+    // Freenet dependencies.
+    // The wrapper manages the fred version; build01497 corresponds to
+    // node-wrapper 2.5 and must be published to JitPack / installed with
+    // `gradlew publishToMavenLocal` from hyphanet-nodewrapper first.
+    implementation ('com.github.freenet-mobile:node-wrapper:2.5') {
         exclude group: 'org.freenetproject', module: 'freenet-ext'
         exclude group: 'net.java.dev.jna', module: 'jna'
         exclude group: 'net.java.dev.jna', module: 'jna-platform'
     }
     implementation 'net.java.dev.jna:jna:5.6.0@aar'
+
+    // onion-fec ships desktop-only native libraries (freebsd-x86, linux-x86,
+    // linux-x86_64) inside the JAR which AGP rejects during native library merging.
+    // fred only uses onion-fec's pure Java code (PureCode), so the artifact is
+    // excluded altogether (see configurations.all below) and replaced by a
+    // stripped copy of it, classes only, kept in app/libs/.
+    implementation files('libs/onion-fec-0.0.4-stripped.jar')
     // End Freenet dependencies
 
     // For running a locally built freenet.jar
@@ -67,9 +130,9 @@ dependencies {
     //implementation "net.java.dev.jna:jna-platform:4.5.2"
     //implementation files('libs/freenet.jar')
 
-    implementation 'androidx.preference:preference:1.2.0'
+    implementation 'androidx.preference:preference:1.2.1'
 
-    testImplementation 'junit:junit:4.13'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }

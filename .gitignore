@@ -1,6 +1,11 @@
 vcs.xml
 proguard/
 out/
+# Local signing/password files
+key.properties
+*.keystore
+*.jks
+
 local.properties
 lint/*
 gen/

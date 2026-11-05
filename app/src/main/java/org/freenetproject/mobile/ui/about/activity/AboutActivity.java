@@ -5,6 +5,8 @@ import android.webkit.WebView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.appbar.MaterialToolbar;
+
 import org.freenetproject.mobile.BuildConfig;
 import org.freenetproject.mobile.R;
 
@@ -16,6 +18,11 @@ public class AboutActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_about);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
 
         WebView wv = (WebView) findViewById(R.id.about_webview);
         wv.loadData(

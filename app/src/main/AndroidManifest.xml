@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="org.freenetproject.mobile">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        tools:ignore="ScopedStorage" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- Required to ask the user to enable status notifications on Android 13+. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- The node is a long-running service that does not fit any of the standard
+         foreground service types, hence the specialUse type and declaration. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application
         android:name=".App"
@@ -21,7 +22,7 @@
         android:theme="@style/AppTheme">
         <activity
             android:name=".ui.acknowledgement.activity.AcknowledgementActivity"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:theme="@style/AppTheme">
         </activity>
         <activity
             android:name=".ui.about.activity.AboutActivity"
@@ -35,13 +36,17 @@
         <activity
             android:name=".ui.bootstrap.activity.BootstrapActivity"
             android:label=""
-            android:theme="@style/AppTheme.NoActionBar"
+            android:theme="@style/AppTheme"
             android:parentActivityName=".ui.main.activity.MainActivity" />
 
         <service
             android:name=".services.node.Service"
             android:enabled="true"
-            android:exported="false">
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Freenet node runs in the background so that this device participates in the network." />
             <intent-filter>
                 <action android:name="org.freenetproject.mobilenode.intent.action.START_NODE" />
                 <action android:name="org.freenetproject.mobilenode.intent.action.STOP_NODE" />
@@ -50,7 +55,7 @@
 
         <activity
             android:name=".ui.main.activity.MainActivity"
-            android:theme="@style/AppTheme.NoActionBar"
+            android:theme="@style/AppTheme"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
