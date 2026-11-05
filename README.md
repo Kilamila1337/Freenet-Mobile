@@ -9,3 +9,7 @@ What was done
 3. Updated the interface to a modern Material 3 look
 
 4. Code cleanup
+
+![Main](assets/screens/Screenshot_20261105-045151_Freenet mobile.jpg)
+![Settings](assets/screens/Screenshot_20261105-045201_Freenet mobile.jpg)
+
