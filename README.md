@@ -10,5 +10,4 @@ What was done
 
 4. Code cleanup
 
-![Main](assets/screens/Screenshot_20261105-045201_Freenet%20mobile.jpg)
-![Settings](assets/screens/Screenshot_20261105-045201_Freenet%20mobile.jpg)
+![Main](assets/screens/Screenshot_20261105-045151_Freenet%20mobile.jpg)
